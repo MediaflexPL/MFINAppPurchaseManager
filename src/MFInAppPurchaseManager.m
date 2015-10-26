@@ -12,10 +12,17 @@
 
 - (instancetype)init
 {
+    self = [self initWithProductIDs:@[]];
+    return self;
+}
+
+- (instancetype _Nonnull) initWithProductIDs: (nonnull NSArray*) productIDs {
     self = [super init];
     if (self) {
-        _productIDs = [NSArray array];
-        _products = [NSMutableArray array];
+        _productIDs = productIDs;
+        _purchasedProducts = [NSMutableArray array];
+        _availableProducts = [NSMutableDictionary dictionaryWithCapacity:[productIDs count]];
+        _products = [NSArray array];
         _errors = [NSMutableArray array];
         _requests = [NSMutableArray array];
         _productRequestWasMade = NO;
@@ -23,57 +30,10 @@
         _hasBoughtPremium = NO;
         _productsHaveBeenRestored = NO;
         
-        
         [[SKPaymentQueue defaultQueue] addTransactionObserver:self];
     }
     return self;
 }
-
-- (instancetype _Nonnull) initWithProductIDs: (nonnull NSArray*) productIDs {
-    self = [self init];
-    if (self) {
-        _productIDs = productIDs;
-    }
-    return self;
-}
-
-- (void) requestProductInfo {
-    if ([SKPaymentQueue canMakePayments]) {
-        NSSet* productIdentifiers = [NSSet setWithArray:_productIDs];
-        SKProductsRequest* productRequest = [[SKProductsRequest alloc] initWithProductIdentifiers:productIdentifiers];
-        
-        productRequest.delegate = self;
-        [_requests addObject:productRequest];
-        [productRequest start];
-    } else {
-        NSLog(@"Can't make payments");
-    }
-}
-
-- (void) buyProduct:(nonnull SKProduct*) product {
-    if (!_transactionInProgress) {
-        _transactionInProgress = YES;
-        
-        SKPayment *payment = [SKPayment paymentWithProduct:product];
-        [[SKPaymentQueue defaultQueue] addPayment:payment];
-
-    }
-}
-
-- (void) restorePurchases {
-    [[SKPaymentQueue defaultQueue] restoreCompletedTransactions];
-}
-
-- (void) didBuyPremium {
-    // do whatever you want
-    _hasBoughtPremium = YES;
-}
-
-- (BOOL) hasBoughtPremium {
-    // check if the product was already bought
-    return _hasBoughtPremium;
-}
-
 
 #pragma mark - SKProductsRequestDelegate
 -(void)request:(SKRequest *)request didFailWithError:(NSError *)error {
@@ -89,8 +49,9 @@
     if (response.products.count > 0) {
         NSLog(@"Product request success");
         for (SKProduct* product in response.products) {
-            [_products addObject:product];
+            _availableProducts[product.productIdentifier] = product;
         }
+        _products = [_availableProducts allValues];
         _productRequestWasMade = YES;
     } else {
         [_errors addObject:@{
@@ -122,10 +83,19 @@
                 NSLog(@"Transaction completed successfully");
                 [queue finishTransaction:transaction];
                 _transactionInProgress = NO;
+                
+                [_purchasedProducts addObject:transaction.payment.productIdentifier];
+                // @todo remove this
+                // The following line will be removed in the future
                 [self didBuyPremium];
                 break;
             case SKPaymentTransactionStateFailed:
                 NSLog(@"Transaction failed");
+                [_errors addObject:@{
+                                     @"date" : [NSDate date],
+                                     @"message" : @"A product was not successfully purchased.",
+                                     @"developer_message" : [NSString stringWithFormat:@"Product with id=\"%@\" could not be purchased", transaction.payment.productIdentifier]
+                                     }];
                 [queue finishTransaction:transaction];
                 _transactionInProgress = NO;
             default:
@@ -143,18 +113,30 @@
     
     for (SKPaymentTransaction *transaction in queue.transactions) {
         NSString *productID = transaction.payment.productIdentifier;
-
+        [_purchasedProducts addObject:transaction.payment.productIdentifier];
+        
         NSLog (@"product id is %@" , productID);
         
+        // ---- BEGIN DEPRECATED CODE ----
+        // @todo remove obsolete code
         if ([_productIDs containsObject:productID]) {
             _hasBoughtPremium = YES;
             NSLog(@"Premium has been restored");
         }
+        // ----  END  DEPRECATED CODE ----
     }
     
     _productsHaveBeenRestored = YES;
 }
-- (NSMutableArray *) products {
+
+#pragma mark - MFInAppPurchaseManagerJavaScriptMethods
+#pragma mark const methods
+
+-(NSDictionary<NSString *,SKProduct *> *)availableProducts {
+    return _availableProducts;
+}
+
+- (NSArray *) products {
     return _products;
 }
 
@@ -170,8 +152,68 @@
     return _transactionInProgress;
 }
 
-- (BOOL)productsHaveBeenRestored {
+- (BOOL) productsHaveBeenRestored {
     return _productsHaveBeenRestored;
+}
+
+-(NSArray<NSString *> *)purchasedProducts {
+    return _purchasedProducts;
+}
+
+- (BOOL) hasBoughtPremium {
+    // check if the product was already bought
+    return _hasBoughtPremium;
+}
+
+-(SKProduct *)productWithID:(NSString *)identifier {
+    return _availableProducts[identifier];
+}
+
+-(BOOL)hasPurchasedProductWithID:(NSString *)identifier {
+    return [_purchasedProducts containsObject:identifier];
+}
+
+
+#pragma mark StoreKit interaction
+
+- (void) requestProductInfo {
+    if ([SKPaymentQueue canMakePayments]) {
+        NSSet* productIdentifiers = [NSSet setWithArray:_productIDs];
+        SKProductsRequest* productRequest = [[SKProductsRequest alloc] initWithProductIdentifiers:productIdentifiers];
+        
+        productRequest.delegate = self;
+        [_requests addObject:productRequest];
+        [productRequest start];
+    } else {
+        NSLog(@"Can't make payments");
+    }
+}
+
+- (void) buyProduct:(nonnull SKProduct*) product {
+    [self purchaseProduct:product];
+}
+
+-(void)purchaseProduct:(SKProduct *)product {
+    if (!_transactionInProgress) {
+        _transactionInProgress = YES;
+        
+        SKPayment *payment = [SKPayment paymentWithProduct:product];
+        [[SKPaymentQueue defaultQueue] addPayment:payment];
+        
+    }
+}
+
+-(void)purchaseProductWithID:(NSString *)identifier {
+    [self purchaseProduct:[self productWithID:identifier]];
+}
+
+- (void) restorePurchases {
+    [[SKPaymentQueue defaultQueue] restoreCompletedTransactions];
+}
+
+- (void) didBuyPremium {
+    // do whatever you want
+    _hasBoughtPremium = YES;
 }
 
 

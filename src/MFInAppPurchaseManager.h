@@ -10,11 +10,14 @@
 #import <JavaScriptCore/JavaScriptCore.h>
 
 
-/**
+/** 
+ *  @brief A protocol responsible for Obj-C - JS binding.
  *  @author Jakub Darowski
- *
- *  This is where the magic happens. Any method declared inside a JSExport protocol 
- *  will be translated into JavaScript. Quite useful.
+ *  @version 1.1
+ *  
+ *  This is where the magic happens. Any method declared
+ *  inside a JSExport protocol will be translated into JavaScript.
+ *  Quite useful.
  */
 
 @protocol MFInAppPurchaseManagerJavaScriptMethods <JSExport>
@@ -28,10 +31,51 @@
 
 /**
  *  @author Jakub Darowski
+ *  @deprecated since 1.1, @see availableProducts
  *
  *  The actual SKProducts returned by StoreKit
  */
-- ( NSMutableArray * _Nonnull) products;
+- ( NSArray * _Nonnull) products;
+
+/**
+ *  @author Jakub Darowski
+ *
+ *  Products available to be bought, returned by StoreKit
+ *
+ *  @return A list of products available for purchase
+ */
+- (NSDictionary<NSString *, SKProduct*> * _Nonnull) availableProducts;
+
+/**
+ *  @author Jakub Darowski
+ *
+ *  Retrieve products the user has already purchased.
+ *
+ *  @return An array of purchased products.
+ */
+- (NSArray<NSString*> * _Nonnull) purchasedProducts;
+
+/**
+ *  @author Jakub Darowski
+ *
+ *  Retrieve the product with the given ID.
+ *
+ *  @param identifier ID of the desired product
+ *
+ *  @return The product with the given ID or nil if none was found.
+ */
+- (SKProduct* _Nullable) productWithID:(nonnull NSString*) identifier;
+
+/**
+ *  @author Jakub Darowski
+ *
+ *  Check whether the user has purchased a product.
+ *
+ *  @param identifier ID of the product to be checked.
+ *
+ *  @return YES if the product was purchased, NO otherwise
+ */
+- (BOOL) hasPurchasedProductWithID:(nonnull NSString*) identifier;
 
 /**
  *  @author Jakub Darowski
@@ -59,6 +103,7 @@
 
 /**
  *  @author Jakub Darowski
+ *  @deprecated since 1.1, use purchaseProduct: instead
  *
  *  Tells the manager to begin the purchase process
  *
@@ -69,27 +114,27 @@
 /**
  *  @author Jakub Darowski
  *
- *  Apple requires you to do a restore button. This is where you might implement it.
+ *  Tells the manager to begin the purchase process
+ *
+ *  @param product Product to be purchased.
+ */
+- (void) purchaseProduct:(nonnull SKProduct*) product;
+
+/**
+ *  @author Jakub Darowski
+ *
+ *  Begin the purchase process using the given ID.
+ *
+ *  @param identifier ID of the desired product.
+ */
+- (void) purchaseProductWithID:(nonnull NSString*) identifier;
+
+/**
+ *  @author Jakub Darowski
+ *
+ *  Restore purchases with the App Store.
  */
 - (void) restorePurchases;
-
-/**
- *  @author Jakub Darowski
- *
- *  Checks if premium has been bought
- *
- *  @return Was premium bought or not?
- */
-- (BOOL) hasBoughtPremium;
-
-/**
- *  @author Jakub Darowski
- *
- *  Checks if products have been restored.
- *
- *  @return Were they?
- */
-- (BOOL) productsHaveBeenRestored;
 
 @end
 
@@ -100,7 +145,7 @@
  */
 
 @interface MFInAppPurchaseManager : NSObject <SKProductsRequestDelegate, SKPaymentTransactionObserver, MFInAppPurchaseManagerJavaScriptMethods> {
-    /**;
+    /**
      *  @author Jakub Darowski
      *
      *  Product IDs defined in iTunes Connect
@@ -109,10 +154,25 @@
     
     /**
      *  @author Jakub Darowski
+     *  @deprecated since 1.1, use _availableProducts instead
      *
      *  SKProducts retrieved from the App Store.
      */
-    NSMutableArray<SKProduct*> *_products;
+    NSArray<SKProduct*> *_products;
+    
+    /**
+     *  @author Jakub Darowski
+     *
+     *  Available SKProducts, retrieved from the App Store.
+     */
+    NSMutableDictionary<NSString*, SKProduct*> *_availableProducts;
+    
+    /**
+     *  @author Jakub Darowski
+     *
+     *  The products the user has already purchased.
+     */
+    NSMutableArray<NSString* > *_purchasedProducts;
     
     /**
      *  @author Jakub Darowski

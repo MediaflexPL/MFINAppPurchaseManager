@@ -2,7 +2,11 @@
 A class used to enable In-App Purchases on TVML-based tvOS applications
 
 # Disclaimer
-Please note that **this is an early draft**. Its current functionality is limited only to buying only one In-App Purchase, but we _will_ enhance it in the future as needed. Feel free to submit suggestions in the [issues](issues) section.
+This class has been improved a little bit, but **it might contain various bugs** as it is a byproduct creating tvOS apps. It will be released as a Cocoa Pod as soon as it becomes able to run on its own.
+Feel free to submit any suggestions or bug reports in the [issues](issues) section.
+
+## Documentation
+The documentation is located in this repository in the _docs_ directory.
 
 ## Usage
 First you must import the file into your `TVApplicationControllerDelegate`:
@@ -27,8 +31,9 @@ purchaseManager.requestProductInfo();
 // It takes some time to get product info, we can check if it was already made
 if (purchaseManager.productRequestWasMade()) {
     // Let's buy something. First we must know which product to buy. Currently there's only one, so that's not really a problem.
-    var product = purchaseManager.products()[0]; // Assign the first product to the variable
-	purchaseManager.buyProduct(product); // Tell StoreKit to take it from here
+    var product = purchaseManager.productWithID("my_super_product"); // Assign the desired product to the variable
+	purchaseManager.purchaseProduct(product); // Tell StoreKit to take it from here
+	purchaseManager.purchaseProductWithID("my_super_product"); // Or tell the class do handle its own stuff like retrieving the product
 } else {
     // Try again later
 }
@@ -44,3 +49,12 @@ if (purchaseManager.productRequestWasMade()) {
     // Try again later
 }
 ```
+
+## Changelog:
+* 1.1:
+    + Added support for multiple products
+	+ Made the methods more consistent
+	+ Deprecated the inconsistent ones
+
+* 1.0:
+    + Initial release
