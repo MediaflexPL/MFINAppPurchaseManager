@@ -2,7 +2,7 @@
 A class used to enable In-App Purchases on TVML-based tvOS applications
 
 # Disclaimer
-This class has been improved a little bit, but **it might contain various bugs** as it is a byproduct creating tvOS apps. It will be released as a Cocoa Pod as soon as it becomes able to run on its own.
+This class has been improved a little bit, but **it might contain various bugs** as it is a byproduct of creating tvOS apps. It will be released as a Cocoa Pod as soon as it becomes able to run on its own.
 Feel free to submit any suggestions or bug reports in the [issues](issues) section.
 
 ## Documentation
